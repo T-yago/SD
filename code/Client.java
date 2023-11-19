@@ -14,7 +14,7 @@ public class Client {
             int option = -1;
             BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
 
-            while (option == -1) {
+            while (true) {
                 System.out.print("\n//////////// LOGIN/REGISTO /////////////\n"
                         + "\n1) Registar nova conta.\n"
                         + "2) Iniciar sessão.\n"
@@ -32,8 +32,21 @@ public class Client {
                         System.out.print("\nIntroduza a sua password: ");
                         String password = stdin.readLine();
                         Account acc = new Account(username, password);
-                        Message message = new Message(0, acc);
+                        Message message = new Message((byte)0, acc);
                         conn.send(message);
+
+                        Message reply = conn.receive();
+
+                        BytePayload bytePayload = (BytePayload)reply.getPayload();
+                        byte payload = bytePayload.getData();
+                        
+                        if (payload == 0) {
+                            System.out.println("Registo efetuado com sucesso.");
+                        } else if (payload == -1) {
+                            System.out.println("User já existe.");
+                        } else {
+                            System.out.println("Erro desconhecido.");
+                        }
 
                     } else if (option == 2) {
                         System.out.print("\n////////////INICIAR SESSÃO/////////////\n"
@@ -44,9 +57,22 @@ public class Client {
                         System.out.print("\nIntroduza a sua password: ");
                         String password = stdin.readLine();
                         Account acc = new Account(username, password);
-                        Message message = new Message(1, acc);
+                        Message message = new Message((byte)1, acc);
                         conn.send(message);
-                        
+
+
+                        Message reply = conn.receive();
+
+                        BytePayload BytePayload = (BytePayload)reply.getPayload();
+                        byte payload = BytePayload.getData();
+
+                        if (payload == 0) {
+                            System.out.println("Login efetuado com sucesso.");
+                        } else if (payload == -1) {
+                            System.out.println("Username ou password incorretos.");
+                        } else {
+                            System.out.println("Erro desconhecido.");
+                        }
                     } else {
                         System.out.println("Please input an integer that corresponds to one of the options.");
                         option = -1;
