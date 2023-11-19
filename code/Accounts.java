@@ -4,22 +4,22 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.io.*;
 
 public class Accounts implements Serializable {
-    private Map<String, Account> accountMap;
+    private Map<String, Account> accounts;
     private ReentrantReadWriteLock lock;
 
     public Accounts() {
-        this.accountMap = new HashMap<>();
+        this.accounts = new HashMap<>();
         this.lock = new ReentrantReadWriteLock();
     }
 
     public void addAccount(String username, String password) {
         lock.writeLock().lock();
         try {
-            if (accountMap.containsKey(username)) {
+            if (accounts.containsKey(username)) {
                 throw new AccountAlreadyExistsException(username);
             }
             Account account = new Account (username, password);
-            accountMap.put(username, account);
+            accounts.put(username, account);
         } finally {
             lock.writeLock().unlock();
         }
@@ -29,9 +29,27 @@ public class Accounts implements Serializable {
     public boolean containsAccount(String username) {
         lock.readLock().lock();
         try {
-            return accountMap.containsKey(username);
+            return accounts.containsKey(username);
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    public boolean isLoggedIn (String username) {
+        lock.readLock().lock();
+        try{
+            return accounts.get(username).isLoggedIn();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public void logOutUser (String username) {
+        lock.writeLock().lock();
+        try {
+            accounts.get(username).loggedIn = false;
+        } finally {
+            lock.writeLock().unlock();
         }
     }
 
