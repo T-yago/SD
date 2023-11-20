@@ -55,7 +55,7 @@ public class Account implements Payload {
     public boolean equals(Object o) {
         if (o instanceof Account) {
             Account a = (Account) o;
-            return username.equals(a.username) && password.equals(a.password) && loggedIn == a.loggedIn;
+            return username.equals(a.username);
         } else {
             return false;
         }
