@@ -1,11 +1,11 @@
 import java.io.Serializable;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 
 
 
-public class Account implements Serializable {
+public class Account implements Payload {
     public final String username;
     public final String password;
     public boolean loggedIn = false;
@@ -28,6 +28,26 @@ public class Account implements Serializable {
         this.loggedIn = loggedIn;
     }  
 
+    public void logIn() {
+        loggedIn = true;
+    }
+
+    public void logOut() {
+        loggedIn = false;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public boolean isLoggedIn() {
+        return loggedIn;
+    }
+
     public String toString() {
         return username + ":" + password + "\nLogged?: " + loggedIn;
     }
@@ -41,13 +61,15 @@ public class Account implements Serializable {
         }
     }
 
-    public void serialize (ObjectOutputStream out) throws IOException{
+    @Override
+    public void serialize (DataOutputStream out) throws IOException{
         out.writeUTF (username);
         out.writeUTF (password);
         out.writeBoolean (loggedIn);
     }
 
-    public Account deserialize (ObjectInputStream in) throws IOException{
+    @Override
+    public Account deserialize (DataInputStream in) throws IOException{
         String username = in.readUTF();
         String password = in.readUTF();
         Boolean loggedIn = in.readBoolean();
