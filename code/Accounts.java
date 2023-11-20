@@ -25,6 +25,30 @@ public class Accounts implements Serializable {
         }
     }
 
+    public void logInUser(String username, String password) {
+        lock.writeLock().lock();
+        try {
+            if (!accounts.containsKey(username)) {
+                throw new IncorrectLoginDataException();
+            }
+
+            Account account = accounts.get(username);
+
+            if (account.isLoggedIn()) {
+                throw new AccountAlreadyLogged(account.getUsername());
+            }
+
+            if (!account.getPassword().equals(password)) {
+                throw new IncorrectLoginDataException();
+            }
+
+            account.loggedIn = true;
+        } finally {
+            lock.writeLock().unlock();
+        }   
+    }
+
+
 
     public boolean containsAccount(String username) {
         lock.readLock().lock();
@@ -53,10 +77,33 @@ public class Accounts implements Serializable {
         }
     }
 
+    public void printAccounts () {
+        lock.readLock().lock();
+        try {
+            for (Account a : accounts.values()) {
+                System.out.println(a.toString());
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
 
-    private static class AccountAlreadyExistsException extends RuntimeException {
+
+    public static class AccountAlreadyExistsException extends RuntimeException {
         public AccountAlreadyExistsException(String username) {
-            super("Account with username " + username + " already exists.");
+            System.out.println("Account with username " + username + " already exists.");
+        }
+    }
+
+    public static class IncorrectLoginDataException extends RuntimeException {
+        public IncorrectLoginDataException() {
+            System.out.println("Invalid Username or Password.");
+        }
+    }
+
+    public static class AccountAlreadyLogged extends RuntimeException {
+        public AccountAlreadyLogged(String username) {
+            System.out.println("User " + username + " is already logged in.");
         }
     }
 }
