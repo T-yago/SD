@@ -6,7 +6,8 @@ public class Connection {
     private Socket socket;
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
-    ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
+    ReentrantLock rl = new ReentrantLock();
+    ReentrantLock wl = new ReentrantLock();
     
     public Connection(Socket socket) throws IOException {
         this.socket = socket;
@@ -16,19 +17,19 @@ public class Connection {
     }
 
     public void send(Message message) throws IOException {
-        rwLock.writeLock().lock();
+        wl.lock();
         try {
             this.outputStream.writeByte(message.getType());
             message.getPayload().serialize(this.outputStream);
             this.outputStream.flush();
         } finally {
-            rwLock.writeLock().unlock();
+            wl.unlock();
         }
     }
 
     // recebe uma mensagem em binário e deserializa-a, para um objecto mensagem em que o campo payload depende do tipo de mensagem
     public Message receive() throws IOException{
-        rwLock.readLock().lock();
+        rl.lock();
         byte type;
         Payload payload = null;
 
@@ -46,7 +47,7 @@ public class Connection {
            
             
         } finally {
-            rwLock.readLock().unlock();
+            rl.unlock();
         }
 
         return new Message(type, payload);
