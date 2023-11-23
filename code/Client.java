@@ -4,6 +4,11 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.util.Arrays;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 
 public class Client {
@@ -105,11 +110,46 @@ public class Client {
                             + "3) Logout.\n"
                             + "\n");  
                         option = Integer.parseInt(stdin.readLine().trim());
-                        if (option == 1) {
-                            //TODO
+
+                        if (option == 1) { // Pedido de execução
+                            System.out.print("Enter the path of the file: ");
+                            String filePath = stdin.readLine().trim();
+
+                            try {
+                                
+                                byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
+
+
+                                Message fileMessage = new Message((byte) 2, new BytesPayload(fileContent));
+                                if (fileMessage.getPayload() == null) {
+                                    System.out.println("Error reading the file heee.");
+                                    continue;
+                                }
+                                conn.send(fileMessage);
+
+                                Message reply = conn.receive();
+                                BytePayload BytePayload = (BytePayload)reply.getPayload();
+                                byte payload = BytePayload.getData();
+
+                                if (payload == 0) {
+                                    System.out.println("Job executed succesfully.");
+                                    reply = conn.receive();
+                                    BytesPayload bytesPayload = (BytesPayload)reply.getPayload();
+                                    byte[] bytes_payload = bytesPayload.getData();
+                                    System.out.println("Byte Array as String: " + Arrays.toString(bytes_payload));
+
+                                } else if (payload == -1) {
+                                    System.out.println("Error sending file.");
+                                } else {
+                                    System.out.println("Unknown error.");
+                                }
+
+                            } catch (IOException e) {
+                                System.out.println("Error reading the file: " + e.getMessage());
+                            }
                         }
                         else if (option == 2) {
-                            //TODO
+                            
                         }
                         else if (option == 3) {
 

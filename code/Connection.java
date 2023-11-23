@@ -42,6 +42,9 @@ public class Connection {
             } else if (type == 127) {
                 BytePayload bytePayload = new BytePayload();
                 payload = (BytePayload) bytePayload.deserialize(this.inputStream);
+            } else if (type == 2) {
+                BytesPayload bytesPayload = new BytesPayload();
+                payload = (BytesPayload) bytesPayload.deserialize(this.inputStream);
             }
 
            
