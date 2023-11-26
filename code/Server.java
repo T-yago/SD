@@ -41,7 +41,7 @@ public class Server {
     }
 
     private static void handleClient(Connection conn) {
-        try {
+        try (conn) {
             while (true) {
 
                 Message message = conn.receive();
@@ -120,6 +120,7 @@ public class Server {
             // Close the client socket
             //conn.close();
         } catch (IOException e) {
+            System.out.println("Error handling client.");
             e.printStackTrace();
         }
     }

@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.locks.*;
 
-public class Connection {
+public class Connection implements AutoCloseable {
     private Socket socket;
     private DataInputStream inputStream;
     private DataOutputStream outputStream;
@@ -56,6 +56,7 @@ public class Connection {
         return new Message(type, payload);
     }
 
+    @Override
     public void close () {
         try {
             this.socket.close();
