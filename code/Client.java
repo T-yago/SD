@@ -19,7 +19,7 @@ public class Client {
 
         try {
             Socket s = new Socket("localhost", 22347);
-            Connection conn = new Connection(s);
+            Demultiplexer m = new Demultiplexer(new Connection(s));
             
             int option = -1;
             BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
@@ -45,12 +45,10 @@ public class Client {
                             String password = stdin.readLine().trim();
                             acc = new Account(username, password);
                             Message message = new Message((byte)0, acc);
-                            conn.send(message);
+                            m.send(message);
 
-                            Message reply = conn.receive();
-
-                            BytePayload bytePayload = (BytePayload)reply.getPayload();
-                            byte payload = bytePayload.getData();
+                            BytePayload reply = (BytePayload) m.receive((byte)127);
+                            byte payload = reply.getData();
                             
                             if (payload == 0) {
                                 System.out.println("Registo efetuado com sucesso.");
@@ -69,19 +67,13 @@ public class Client {
 
                             System.out.print("\nIntroduza a sua password: ");
                             String password = stdin.readLine().trim();
-                            System.out.print(password);
                             acc = new Account(username, password,false);
                             Message message = new Message((byte)1, acc);
-                            System.out.print("\nCriou mensagem: " + message.toString());
 
-                            conn.send(message);
+                            m.send(message);
 
-                            System.out.print("\nEnviou mensagem ");
-
-                            Message reply = conn.receive();
-
-                            BytePayload BytePayload = (BytePayload)reply.getPayload();
-                            byte payload = BytePayload.getData();
+                            BytePayload reply = (BytePayload) m.receive((byte)127);
+                            byte payload = reply.getData();
 
                             if (payload == 0) {
                                 System.out.println("Login efetuado com sucesso.");
@@ -125,16 +117,16 @@ public class Client {
                                     System.out.println("Error reading the file heee.");
                                     continue;
                                 }
-                                conn.send(fileMessage);
+                                m.send(fileMessage);
 
-                                Message reply = conn.receive();
-                                BytePayload BytePayload = (BytePayload)reply.getPayload();
+                                Payload reply = m.receive((byte)127);
+                                BytePayload BytePayload = (BytePayload)reply;
                                 byte payload = BytePayload.getData();
 
                                 if (payload == 0) {
                                     System.out.println("Job executed succesfully.");
-                                    reply = conn.receive();
-                                    BytesPayload bytesPayload = (BytesPayload)reply.getPayload();
+                                    reply = m.receive((byte)2);
+                                    BytesPayload bytesPayload = (BytesPayload)reply;
                                     byte[] bytes_payload = bytesPayload.getData();
                                     System.out.println("Byte Array as String: " + Arrays.toString(bytes_payload));
 
@@ -154,11 +146,11 @@ public class Client {
                         else if (option == 3) {
 
                             Message message = new Message((byte)1, acc);
-                            conn.send(message);
+                            m.send(message);
 
-                            Message reply = conn.receive();
+                            Payload reply = m.receive((byte)127);
 
-                            BytePayload bytePayload = (BytePayload)reply.getPayload();
+                            BytePayload bytePayload = (BytePayload)reply;
                             byte payload = bytePayload.getData();
 
                             if (payload == 0) {
