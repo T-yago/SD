@@ -14,7 +14,7 @@ import java.nio.file.Paths;
 public class Client {
     public static void main(String[] args) {
 
-            final Account acc = new Account();
+            Account acc = new Account();
             boolean loggedIn = false;
 
         try {
@@ -35,10 +35,10 @@ public class Client {
                     try {
                         option = Integer.parseInt(stdin.readLine().trim());
 
-                       if (option == 1) {
-                            loggedIn = handle_register_login(m, stdin, acc, loggedIn);
+                    if (option == 1) {
+                            loggedIn = handle_register_login(m, stdin, acc);
                         } else if (option == 2) {
-                            handle_login(m, stdin, acc, loggedIn);
+                            loggedIn = handle_login(m, stdin, acc);
                         }
                         else {
                             System.out.println("Please input an integer that corresponds to one of the options.");
@@ -58,11 +58,124 @@ public class Client {
                             + "\n");  
                         option = Integer.parseInt(stdin.readLine().trim());
 
-                        if (option == 1) { // Pedido de execução
+                        if (option == 1) {
                             System.out.print("Enter the path of the file: ");
                             String filePath = stdin.readLine().trim();
-
                             new Thread(() -> {
+                                try {
+                                    handle_execution(filePath, m);
+                                } catch (IOException e) {
+                                    System.out.println("Error executing job: " + e.getMessage());
+                                }
+                            }).start();
+                        } else if (option == 2) {
+                        //   
+                        }
+                        else if (option == 3) {
+
+                            Message message = new Message((byte)1, acc);
+                            System.out.println(acc.toString());
+                            m.send(message);
+
+                            Payload reply = m.receive((byte)127);
+
+                            BytePayload bytePayload = (BytePayload)reply;
+                            byte payload = bytePayload.getData();
+
+                            if (payload == 0) {
+                                System.out.println("Logout efetuado com sucesso.");
+                                acc.logOut();
+                                loggedIn = false;
+                            } else if (payload == -1) {
+                                System.out.println("Erro ao efetuar logout.");
+                            } else {
+                                System.out.println("Erro desconhecido.");
+                            }
+                        }
+                        else {
+                            System.out.println("Please input an integer that corresponds to one of the options.");
+                            option = -1;
+                        }
+
+                    }
+                    
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error creating connection or connection refused, exiting program");
+            System.exit(1);
+        }
+    }
+
+
+
+
+
+    private static boolean handle_register_login (Demultiplexer m, BufferedReader stdin, Account acc) throws IOException {
+        System.out.print("\n////////////REGISTAR NOVA CONTA/////////////\n"
+                                            + "\n"
+                                            + "Introduza o seu username: ");
+                                    String username = stdin.readLine().trim();
+
+                                    System.out.print("\nIntroduza a sua password: ");
+                                    String password = stdin.readLine().trim();
+                                    acc.setUsername(username);
+                                    acc.setPassword(password);
+                                    Message message = new Message((byte)0, acc);
+                                    m.send(message);
+
+                                    BytePayload reply = (BytePayload) m.receive((byte)127);
+                                    byte payload = reply.getData();
+                                    
+                                    if (payload == 0) {
+                                        System.out.println("Registo efetuado com sucesso.");
+                                        acc.logIn();
+                                        return true;
+                                    } else if (payload == -1) {
+                                        System.out.println("User já existe.");
+                                    } else {
+                                        System.out.println("Erro desconhecido.");
+                                    }
+        return false;                              
+    }
+
+
+
+    private static boolean handle_login (Demultiplexer m, BufferedReader stdin, Account acc) throws IOException {
+        System.out.print("\n////////////INICIAR SESSÃO/////////////\n"
+                                            + "\n"
+                                            + "Introduza o seu username: ");
+                                    String username = stdin.readLine().trim();
+
+                                    System.out.print("\nIntroduza a sua password: ");
+                                    String password = stdin.readLine().trim();
+                                    acc.setUsername(username);
+                                    acc.setPassword(password);
+                                    
+                                    Message message = new Message((byte)1, acc);
+
+                                    System.out.println(acc.toString());
+                                    m.send(message);
+
+                                    BytePayload reply = (BytePayload) m.receive((byte)127);
+                                    byte payload = reply.getData();
+
+                                    if (payload == 0) {
+                                        acc.logIn();
+                                        System.out.println("Login efetuado com sucesso.");
+                                        return true;
+                                    } else if (payload == -1) {
+                                        System.out.println("Conta já está logada.");
+                                    } else if (payload == -2) {
+                                        System.out.println("Username ou Passowrd incorretas.");
+                                    } else {
+                                        System.out.println("Erro desconhecido.");
+                                    }
+        return false;
+    }
+
+
+    private static void handle_execution (String filePath, Demultiplexer m) throws IOException {
                                 try {
                                     byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
 
@@ -93,102 +206,6 @@ public class Client {
                                 } catch (IOException e) {
                                     System.out.println("Error reading the file: " + e.getMessage());
                                 }
-                            }).start();
-
-                        } else if (option == 2) {
-                         //   
-                        }
-                        else if (option == 3) {
-
-                            Message message = new Message((byte)1, acc);
-                            m.send(message);
-
-                            Payload reply = m.receive((byte)127);
-
-                            BytePayload bytePayload = (BytePayload)reply;
-                            byte payload = bytePayload.getData();
-
-                            if (payload == 0) {
-                                System.out.println("Logout efetuado com sucesso.");
-                            } else if (payload == -1) {
-                                System.out.println("Erro ao efetuar logout.");
-                            } else {
-                                System.out.println("Erro desconhecido.");
-                            }
-                        }
-                        else {
-                            System.out.println("Please input an integer that corresponds to one of the options.");
-                            option = -1;
-                        }
-  
-                    }
-                     
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Error creating connection or connection refused, exiting program");
-            System.exit(1);
-        }
-    }
-
-
-
-
-
-    private static boolean handle_register_login (Demultiplexer m, BufferedReader stdin, Account acc, boolean loggedIn) throws IOException {
-        System.out.print("\n////////////REGISTAR NOVA CONTA/////////////\n"
-                                            + "\n"
-                                            + "Introduza o seu username: ");
-                                    String username = stdin.readLine().trim();
-
-                                    System.out.print("\nIntroduza a sua password: ");
-                                    String password = stdin.readLine().trim();
-                                    acc = new Account(username, password);
-                                    Message message = new Message((byte)0, acc);
-                                    m.send(message);
-
-                                    BytePayload reply = (BytePayload) m.receive((byte)127);
-                                    byte payload = reply.getData();
-                                    
-                                    if (payload == 0) {
-                                        System.out.println("Registo efetuado com sucesso.");
-                                        return true;
-                                    } else if (payload == -1) {
-                                        System.out.println("User já existe.");
-                                    } else {
-                                        System.out.println("Erro desconhecido.");
-                                    }
-        return false;                              
-    }
-
-
-
-    private static void handle_login (Demultiplexer m, BufferedReader stdin, Account acc, boolean loggedIn) throws IOException {
-        System.out.print("\n////////////INICIAR SESSÃO/////////////\n"
-                                            + "\n"
-                                            + "Introduza o seu username: ");
-                                    String username = stdin.readLine().trim();
-
-                                    System.out.print("\nIntroduza a sua password: ");
-                                    String password = stdin.readLine().trim();
-                                    acc = new Account(username, password,false);
-                                    Message message = new Message((byte)1, acc);
-
-                                    m.send(message);
-
-                                    BytePayload reply = (BytePayload) m.receive((byte)127);
-                                    byte payload = reply.getData();
-
-                                    if (payload == 0) {
-                                        System.out.println("Login efetuado com sucesso.");
-                                        loggedIn = true;
-                                    } else if (payload == -1) {
-                                        System.out.println("Conta já está logada.");
-                                    } else if (payload == -2) {
-                                        System.out.println("Username ou Passowrd incorretas.");
-                                    } else {
-                                        System.out.println("Erro desconhecido.");
-                                    }
     }
 
 

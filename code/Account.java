@@ -6,8 +6,8 @@ import java.io.IOException;
 
 
 public class Account implements Payload {
-    public final String username;
-    public final String password;
+    public String username;
+    public String password;
     public boolean loggedIn = false;
 
     public Account() {
@@ -27,6 +27,14 @@ public class Account implements Payload {
         this.password = password;
         this.loggedIn = loggedIn;
     }  
+
+    public void setPassword (String password) {
+        this.password = password;
+    }
+
+    public void setUsername (String username) {
+        this.username = username;
+    }
 
     public void logIn() {
         loggedIn = true;
