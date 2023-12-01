@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="sd23">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/sd23.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

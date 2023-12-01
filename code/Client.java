@@ -20,13 +20,28 @@ public class Client {
         try {
             Socket s = new Socket("localhost", 22347);
             Demultiplexer m = new Demultiplexer(new Connection(s));
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("Shutting down gracefully...");
+                try {
+                    if (s != null && !s.isClosed()) {
+                        System.out.println(acc.toString());
+                        handle_logout(m, acc);
+                        s.close();
+                        System.out.println("Client socket closed.");
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }));
+
             
             int option = -1;
             BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
 
             while (true) {
 
-                if (!loggedIn) {
+                if (!acc.isLoggedIn()) {
                     System.out.print("\n//////////// LOGIN/REGISTO /////////////\n"
                             + "\n1) Registar nova conta.\n"
                             + "2) Iniciar sessão.\n"
@@ -50,7 +65,7 @@ public class Client {
                         option = -1;
                     }
                 } else {
-                    while (loggedIn) {
+                    while (acc.isLoggedIn()) {
                         System.out.print("\n//////////// Pedido de execução / Consulta do Estado /////////////\n"
                             + "\n1) Pedido de execução.\n"
                             + "2) Consulta do estado.\n"
@@ -72,25 +87,7 @@ public class Client {
                         //   
                         }
                         else if (option == 3) {
-
-                            Message message = new Message((byte)1, acc);
-                            System.out.println(acc.toString());
-                            m.send(message);
-
-                            Payload reply = m.receive((byte)127);
-
-                            BytePayload bytePayload = (BytePayload)reply;
-                            byte payload = bytePayload.getData();
-
-                            if (payload == 0) {
-                                System.out.println("Logout efetuado com sucesso.");
-                                acc.logOut();
-                                loggedIn = false;
-                            } else if (payload == -1) {
-                                System.out.println("Erro ao efetuar logout.");
-                            } else {
-                                System.out.println("Erro desconhecido.");
-                            }
+                            handle_logout(m, acc);
                         }
                         else {
                             System.out.println("Please input an integer that corresponds to one of the options.");
@@ -208,5 +205,28 @@ public class Client {
                                 }
     }
 
+
+    private static void handle_logout (Demultiplexer m, Account acc ) {
+        try{
+        Message message = new Message((byte)1, acc);
+        m.send(message);
+
+        Payload reply = m.receive((byte)127);
+
+        BytePayload bytePayload = (BytePayload)reply;
+        byte payload = bytePayload.getData();
+
+        if (payload == 0) {
+            System.out.println("Logout efetuado com sucesso.");
+            acc.logOut();
+        } else if (payload == -1) {
+            System.out.println("Erro ao efetuar logout.");
+        } else {
+            System.out.println("Erro desconhecido.");
+        }
+        } catch (IOException e) {
+            System.out.println("Error sending message.");
+        }
+    }
 
 }
