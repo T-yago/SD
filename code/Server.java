@@ -9,6 +9,7 @@ import sd23.*;
 public class Server {
                 
     private static Accounts accounts = new Accounts();
+    private int max_MEM = 100000;
 
     public static void main(String[] args) {
         try {
