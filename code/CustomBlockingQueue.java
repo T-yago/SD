@@ -68,7 +68,7 @@ public class CustomBlockingQueue implements Payload {
     private int getQueueSizeInBytes() {
         int size = 0;
         for (String str : queue) {
-            size += str.length(); // Each character is represented by 2 bytes in UTF-8
+            size += str.length(); 
         }
         return size;
     }
@@ -80,13 +80,10 @@ public class CustomBlockingQueue implements Payload {
             // Write the total size of the message (mem + queue size)
             out.writeInt(4 + getQueueSizeInBytes());
 
-            // Write the memory value
             out.writeInt(this.mem);
 
-            // Write the queue size
             out.writeInt(queue.size());
 
-            // Write each element in the queue
             for (String str : queue) {
                 out.writeUTF(str);
             }
@@ -128,30 +125,30 @@ public class CustomBlockingQueue implements Payload {
     
 
     @Override
-public String toString() {
-    lock.lock();
-    try {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Server Status \n{");
-        stringBuilder.append("mem=").append(mem);
-        stringBuilder.append(", queue=[");
-        
-        boolean first = true;
-        for (String str : queue) {
-            if (!first) {
-                stringBuilder.append(", ");
+    public String toString() {
+        lock.lock();
+        try {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("Server Status \n{");
+            stringBuilder.append("mem=").append(mem);
+            stringBuilder.append(", queue=[");
+            
+            boolean first = true;
+            for (String str : queue) {
+                if (!first) {
+                    stringBuilder.append(", ");
+                }
+                stringBuilder.append(str);
+                first = false;
             }
-            stringBuilder.append(str);
-            first = false;
+            
+            stringBuilder.append("]");
+            stringBuilder.append(", Queue capacity=").append(capacity);
+            stringBuilder.append('}');
+            return stringBuilder.toString();
+        } finally {
+            lock.unlock();
         }
-        
-        stringBuilder.append("]");
-        stringBuilder.append(", Queue capacity=").append(capacity);
-        stringBuilder.append('}');
-        return stringBuilder.toString();
-    } finally {
-        lock.unlock();
     }
-}
 
 }

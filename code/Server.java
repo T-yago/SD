@@ -78,12 +78,8 @@ public class Server {
     private static void handleClient(Connection conn, SimpleAtomicInteger currentMemory) throws JobMemoryException{
         try (conn) {
             while (true) {
-                System.out.println("COMEçCoU!");
                 Message message = conn.receive();
                 byte type = message.getType();
-
-                System.out.println("Received message type: " + type);
-        
                     if (type == 0) { // Registo
                         Account account = (Account) message.getPayload();
                         try {
@@ -91,7 +87,6 @@ public class Server {
                             System.out.println("Account created successfully.");
                             accounts.printAccounts();
                             conn.send(new Message((byte)127,new BytePayload((byte)0)));
-                            System.out.println("Sent confirmation.");
 
 
                         } catch (Exception e) {
@@ -141,16 +136,12 @@ public class Server {
                             }
 
                             int id = bytesPayload.readSecondInt();
-        
-                            System.out.println("\n\n Current MEM" + currentMemory.get() + "\n\n");
-        
+                
                             memoryLock.lock();
                             try {
                                 if (mem > currentMemory.get()) {
                                     while (mem > currentMemory.get()) {
                                         try {
-                                            System.out.println("Ran out of memory");
-                                            System.out.println(programQueue.toString());
                                             programQueue.enqueue("Job" + id);
                                             memoryAvailable.await(); // espera até que haja memória disponível
                                         } catch (InterruptedException e) {
@@ -190,7 +181,6 @@ public class Server {
                             } finally {
                                 try {
                                     String program = programQueue.dequeue();
-                                    System.out.println("Dequeued program: " + program);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }
@@ -202,7 +192,6 @@ public class Server {
                             if (!exception) memoryLock.unlock();
                         }
                     } else if (type == 3) { // Develver memória e jobs em queue
-                        System.out.println("Received request for memory and queue.");
                         int mem = currentMemory.get();
                         programQueue.setMem(mem);
                         
@@ -212,10 +201,7 @@ public class Server {
                         memoryBytes[2] = (byte) (mem >> 16);
                         memoryBytes[3] = (byte) (mem >> 24);
 
-                        System.out.println(programQueue.toString());
-
                         conn.send(new Message((byte) 4, programQueue));
-                        System.out.println("Sent memory and queue.");                        
                     } else {
                         System.out.println("Received invalid message type: " + type);
                     }

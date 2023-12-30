@@ -23,7 +23,6 @@ public class Client {
                 System.out.println("Shutting down gracefully...");
                 try {
                     if (s != null && !s.isClosed()) {
-                        System.out.println(acc.toString());
                         handle_logout(m, acc);
                         s.close();
                         System.out.println("Client socket closed.");
@@ -110,9 +109,7 @@ public class Client {
     private static boolean handle_check (Demultiplexer m) throws IOException {
         Message message = new Message((byte)3, new BytePayload((byte)0));
         m.send(message);
-        System.out.println("Sent message.");
         CustomBlockingQueue queue = (CustomBlockingQueue) m.receive((byte)4);
-        System.out.println("Received message type 4.");
         if (queue == null) {
             System.out.println("Error receiving message.");
             return false;
@@ -164,7 +161,6 @@ public class Client {
                                     
                                     Message message = new Message((byte)1, acc);
 
-                                    System.out.println(acc.toString());
                                     m.send(message);
 
                                     BytePayload reply = (BytePayload) m.receive((byte)127);
@@ -189,7 +185,6 @@ public class Client {
         try {
             byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
             int jobID = acc.getJobCounter();
-            System.out.println("Job " + jobID + "being sent to server.");
     
             byte[] memoryBytes = new byte[4];
             memoryBytes[0] = (byte) memory;
