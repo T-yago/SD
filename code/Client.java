@@ -1,21 +1,16 @@
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.util.Arrays;
-
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 
 
 public class Client {
     public static void main(String[] args) {
 
-            Account acc = new Account();
-            boolean loggedIn = false;
+        Account acc = new Account();
 
         try {
             Socket s = new Socket("localhost", 22347);
@@ -51,9 +46,9 @@ public class Client {
                         option = Integer.parseInt(stdin.readLine().trim());
 
                     if (option == 1) {
-                            loggedIn = handle_register_login(m, stdin, acc);
+                            handle_register_login(m, stdin, acc);
                         } else if (option == 2) {
-                            loggedIn = handle_login(m, stdin, acc);
+                            handle_login(m, stdin, acc);
                         }
                         else {
                             System.out.println("Please input an integer that corresponds to one of the options.");
@@ -76,9 +71,11 @@ public class Client {
                         if (option == 1) {
                             System.out.print("Enter the path of the file: ");
                             String filePath = stdin.readLine().trim();
+                            System.out.println("How much memory will the job take? (in bytes)");
+                            int memory = Integer.parseInt(stdin.readLine().trim());
                             new Thread(() -> {
                                 try {
-                                    handle_execution(filePath, m);
+                                    handle_execution(filePath, m, memory);
                                 } catch (IOException e) {
                                     System.out.println("Error executing job: " + e.getMessage());
                                 }
@@ -172,13 +169,28 @@ public class Client {
     }
 
 
-    private static void handle_execution (String filePath, Demultiplexer m) throws IOException {
-                                try {
-                                    byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
+    private static void handle_execution (String filePath, Demultiplexer m, int memory) throws IOException {
+                                    try {
+                                        byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
+                                
+                                        // Convert the 'memory' integer to a byte array
+                                        byte[] memoryBytes = new byte[4];
+                                        memoryBytes[0] = (byte) memory;
+                                        memoryBytes[1] = (byte) (memory >> 8);
+                                        memoryBytes[2] = (byte) (memory >> 16);
+                                        memoryBytes[3] = (byte) (memory >> 24);
+                                
+                                        // Concatenate the 'memory' byte array with the original byte array
+                                        byte[] combinedBytes = new byte[memoryBytes.length + fileContent.length];
+                                        System.arraycopy(memoryBytes, 0, combinedBytes, 0, memoryBytes.length);
+                                        System.out.println(Arrays.toString(memoryBytes));
+                                        System.arraycopy(fileContent, 0, combinedBytes, memoryBytes.length, fileContent.length);
 
-                                    Message fileMessage = new Message((byte) 2, new BytesPayload(fileContent));
+                                    // Create BytesPayload based on combinedData
+                                    Message fileMessage = new Message((byte) 2, new BytesPayload(combinedBytes));
+
                                     if (fileMessage.getPayload() == null) {
-                                        System.out.println("Error reading the file heee.");
+                                        System.out.println("Error reading the file here.");
                                         return;
                                     }
 

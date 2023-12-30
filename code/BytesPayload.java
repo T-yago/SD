@@ -28,6 +28,20 @@ public class BytesPayload implements Payload {
         return this.data;
     }
 
+    public int readMemFirstInt() {
+        if (data.length < 4) {
+            throw new IllegalArgumentException("Data array is too short to read an integer.");
+        }
+    
+        int mem = (data[0] & 0xFF) |
+                   ((data[1] & 0xFF) << 8) |
+                   ((data[2] & 0xFF) << 16) |
+                   ((data[3] & 0xFF) << 24);
+    
+        return mem;
+    }
+
+
     @Override
     public void serialize(DataOutputStream out) throws IOException {
         System.out.println("BytesPayload: " + data.length);
