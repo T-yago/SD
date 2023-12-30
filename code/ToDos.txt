@@ -1,0 +1,4 @@
+Servidor Worker ligar-se ao servidor pai
+Servidor Worker avisar servidor principal que vai se desligar
+
+mensagem 4 -> fim de conexão servidorWorker, servidor principal
