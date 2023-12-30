@@ -48,7 +48,6 @@ public class Connection implements AutoCloseable {
             }
 
            
-            
         } finally {
             rl.unlock();
         }

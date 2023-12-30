@@ -24,7 +24,7 @@ public class Demultiplexer  implements AutoCloseable{
                     Message message = conn.receive();
                     byte type = message.getType();
                     this.l.lock();
-                    try {
+                    try { 
                         PayloadsDequeue queue = queues.get(type);
                         if (queue == null) {
                             queue = new PayloadsDequeue(this.l);
