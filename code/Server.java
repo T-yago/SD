@@ -14,9 +14,9 @@ import sd23.*;
 public class Server {
 
 
-    private static CustomBlockingQueue<String> programQueue = new CustomBlockingQueue<>(20);            
     private static Accounts accounts = new Accounts();
     private static int max_MEM;
+    private static CustomBlockingQueue programQueue = new CustomBlockingQueue(20,max_MEM);            
     private static Lock memoryLock = new ReentrantLock();
     private static SimpleAtomicInteger currentMemory;
     private static Condition memoryAvailable = memoryLock.newCondition();
@@ -150,6 +150,7 @@ public class Server {
                                     while (mem > currentMemory.get()) {
                                         try {
                                             System.out.println("Ran out of memory");
+                                            System.out.println(programQueue.toString());
                                             programQueue.enqueue("Job" + id);
                                             memoryAvailable.await(); // espera até que haja memória disponível
                                         } catch (InterruptedException e) {
@@ -200,9 +201,21 @@ public class Server {
                         } finally {
                             if (!exception) memoryLock.unlock();
                         }
-                    } else if (type == 3) {
+                    } else if (type == 3) { // Develver memória e jobs em queue
+                        System.out.println("Received request for memory and queue.");
+                        int mem = currentMemory.get();
+                        programQueue.setMem(mem);
                         
-                        
+                        byte[] memoryBytes = new byte[4];
+                        memoryBytes[0] = (byte) mem;
+                        memoryBytes[1] = (byte) (mem >> 8);
+                        memoryBytes[2] = (byte) (mem >> 16);
+                        memoryBytes[3] = (byte) (mem >> 24);
+
+                        System.out.println(programQueue.toString());
+
+                        conn.send(new Message((byte) 4, programQueue));
+                        System.out.println("Sent memory and queue.");                        
                     } else {
                         System.out.println("Received invalid message type: " + type);
                     }

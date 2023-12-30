@@ -84,8 +84,7 @@ public class Client {
                                 }
                             }).start();
                         } else if (option == 2) {
-                            handle_check(m, acc);
-
+                            handle_check(m);
                         }
                         else if (option == 3) {
                             handle_logout(m, acc);
@@ -108,8 +107,17 @@ public class Client {
 
 
 
-    private static boolean handle_check (Demultiplexer m, Account acc) throws IOException {
-        
+    private static boolean handle_check (Demultiplexer m) throws IOException {
+        Message message = new Message((byte)3, new BytePayload((byte)0));
+        m.send(message);
+        System.out.println("Sent message.");
+        CustomBlockingQueue queue = (CustomBlockingQueue) m.receive((byte)4);
+        System.out.println("Received message type 4.");
+        if (queue == null) {
+            System.out.println("Error receiving message.");
+            return false;
+        }
+        System.out.println(queue.toString());
         return false;
     }
 

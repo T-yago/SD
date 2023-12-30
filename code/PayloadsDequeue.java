@@ -15,11 +15,7 @@ public class PayloadsDequeue {
     }
 
     public void add(Payload payload) {
-        this.queue.add(payload);
-
-
-
-        
+        this.queue.add(payload);      
         try{
             this.condition.signal();
         } catch (Exception e) {

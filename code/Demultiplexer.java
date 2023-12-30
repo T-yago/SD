@@ -4,14 +4,12 @@ import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.Condition;
 
-public class Demultiplexer  implements AutoCloseable{
+public class Demultiplexer implements AutoCloseable {
     private final Connection conn;
-    private ReentrantLock l = new ReentrantLock();
+    private final ReentrantLock l = new ReentrantLock();
     private final Map<Byte, PayloadsDequeue> queues;
 
-
-
-    public Demultiplexer (Connection conn){
+    public Demultiplexer(Connection conn) {
         this.conn = conn;
         this.queues = new HashMap<>();
         this.start();
@@ -24,7 +22,7 @@ public class Demultiplexer  implements AutoCloseable{
                     Message message = conn.receive();
                     byte type = message.getType();
                     this.l.lock();
-                    try { 
+                    try {
                         PayloadsDequeue queue = queues.get(type);
                         if (queue == null) {
                             queue = new PayloadsDequeue(this.l);
@@ -44,12 +42,11 @@ public class Demultiplexer  implements AutoCloseable{
         }).start();
     }
 
-
     public void send(Message message) throws IOException {
         conn.send(message);
     }
 
-    public Payload receive (byte type) {
+    public Payload receive(byte type) {
         try {
             this.l.lock();
             PayloadsDequeue queue = queues.get(type);
@@ -71,9 +68,4 @@ public class Demultiplexer  implements AutoCloseable{
     public void close() {
         conn.close();
     }
-
-
 }
-
-
-
