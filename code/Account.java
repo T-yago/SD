@@ -9,6 +9,8 @@ public class Account implements Payload {
     public String username;
     public String password;
     public boolean loggedIn = false;
+    private int jobCounter = 0; 
+
 
     public Account() {
         this.username = null;
@@ -46,6 +48,10 @@ public class Account implements Payload {
 
     public String getUsername() {
         return username;
+    }
+
+    public int getJobCounter() {
+        return jobCounter++;
     }
 
     public String getPassword() {

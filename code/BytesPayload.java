@@ -21,14 +21,14 @@ public class BytesPayload implements Payload {
         for (int i = 0; i < data.length; i++) {
             this.data[i] = data[i];
         }
+      }
     }
-}
 
     public byte[] getData() {
         return this.data;
     }
 
-    public int readMemFirstInt() {
+    public int readFirstInt() { // memória, no caso de um pedido, oud id, no caso de uma resposta.
         if (data.length < 4) {
             throw new IllegalArgumentException("Data array is too short to read an integer.");
         }
@@ -40,6 +40,20 @@ public class BytesPayload implements Payload {
     
         return mem;
     }
+
+    public int readSecondInt() { // id, no caso de um pedido.
+        if (data.length < 8) {
+            throw new IllegalArgumentException("Data array is too short to read the second integer.");
+        }
+    
+        int id = (data[4] & 0xFF) |
+                 ((data[5] & 0xFF) << 8) |
+                 ((data[6] & 0xFF) << 16) |
+                 ((data[7] & 0xFF) << 24);
+    
+        return id;
+    }
+    
 
 
     @Override

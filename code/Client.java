@@ -2,8 +2,10 @@ import java.net.Socket;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.util.Arrays;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 
@@ -11,6 +13,7 @@ public class Client {
     public static void main(String[] args) {
 
         Account acc = new Account();
+
 
         try {
             Socket s = new Socket("localhost", 22347);
@@ -75,13 +78,15 @@ public class Client {
                             int memory = Integer.parseInt(stdin.readLine().trim());
                             new Thread(() -> {
                                 try {
-                                    handle_execution(filePath, m, memory);
+                                    handle_execution(acc,filePath, m, memory);
                                 } catch (IOException e) {
                                     System.out.println("Error executing job: " + e.getMessage());
                                 }
                             }).start();
                         } else if (option == 2) {
-                        //   
+                            
+                            
+
                         }
                         else if (option == 3) {
                             handle_logout(m, acc);
@@ -169,52 +174,76 @@ public class Client {
     }
 
 
-    private static void handle_execution (String filePath, Demultiplexer m, int memory) throws IOException {
-                                    try {
-                                        byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
-                                
-                                        // Convert the 'memory' integer to a byte array
-                                        byte[] memoryBytes = new byte[4];
-                                        memoryBytes[0] = (byte) memory;
-                                        memoryBytes[1] = (byte) (memory >> 8);
-                                        memoryBytes[2] = (byte) (memory >> 16);
-                                        memoryBytes[3] = (byte) (memory >> 24);
-                                
-                                        // Concatenate the 'memory' byte array with the original byte array
-                                        byte[] combinedBytes = new byte[memoryBytes.length + fileContent.length];
-                                        System.arraycopy(memoryBytes, 0, combinedBytes, 0, memoryBytes.length);
-                                        System.out.println(Arrays.toString(memoryBytes));
-                                        System.arraycopy(fileContent, 0, combinedBytes, memoryBytes.length, fileContent.length);
+    private static void handle_execution (Account acc, String filePath, Demultiplexer m, int memory) throws IOException {
+        try {
+            byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
+            int jobID = acc.getJobCounter();
+            System.out.println("Job " + jobID + "being sent to server.");
+    
+            byte[] memoryBytes = new byte[4];
+            memoryBytes[0] = (byte) memory;
+            memoryBytes[1] = (byte) (memory >> 8);
+            memoryBytes[2] = (byte) (memory >> 16);
+            memoryBytes[3] = (byte) (memory >> 24);
 
-                                    // Create BytesPayload based on combinedData
-                                    Message fileMessage = new Message((byte) 2, new BytesPayload(combinedBytes));
+            byte[] idBytes = new byte[4];
+            idBytes[0] = (byte) jobID;
+            idBytes[1] = (byte) (jobID >> 8);
+            idBytes[2] = (byte) (jobID >> 16);
+            idBytes[3] = (byte) (jobID >> 24);
 
-                                    if (fileMessage.getPayload() == null) {
-                                        System.out.println("Error reading the file here.");
-                                        return;
-                                    }
+    
+            // Concatenate the 'memory' byte array with the original byte array
+            byte[] combinedBytes = new byte[memoryBytes.length + idBytes.length + fileContent.length];
+            System.arraycopy(memoryBytes, 0, combinedBytes, 0, memoryBytes.length);
+            System.arraycopy(idBytes, 0, combinedBytes, memoryBytes.length, idBytes.length);
+            System.arraycopy(fileContent, 0, combinedBytes, memoryBytes.length + idBytes.length, fileContent.length);
 
-                                    m.send(fileMessage);
+            // Create BytesPayload based on combinedData
+            Message fileMessage = new Message((byte) 2, new BytesPayload(combinedBytes));
 
-                                    Payload reply = m.receive((byte) 127);
-                                    BytePayload bytePayload = (BytePayload) reply;
-                                    byte payload = bytePayload.getData();
+        if (fileMessage.getPayload() == null) {
+            System.out.println("Error reading the file here.");
+            return;
+        }
 
-                                    if (payload == 0) {
-                                        System.out.println("Job executed successfully.");
-                                        reply = m.receive((byte) 2);
-                                        BytesPayload bytesPayload = (BytesPayload) reply;
-                                        byte[] bytes_payload = bytesPayload.getData();
-                                        System.out.println("Byte Array as String: " + Arrays.toString(bytes_payload));
-                                    } else if (payload == -1) {
-                                        System.out.println("Error sending file.");
-                                    } else {
-                                        System.out.println("Unknown error.");
-                                    }
+        m.send(fileMessage);
 
-                                } catch (IOException e) {
-                                    System.out.println("Error reading the file: " + e.getMessage());
-                                }
+        Payload reply = m.receive((byte) 127);
+        BytePayload bytePayload = (BytePayload) reply;
+        byte payload = bytePayload.getData();
+
+        if (payload == 0) {
+            System.out.println("Job executed successfully.");
+
+            String usernameDirectory = acc.getUsername();
+            Path directoryPath = Paths.get(usernameDirectory);
+
+            if (!Files.exists(directoryPath)) {
+                Files.createDirectory(directoryPath);
+            }
+
+            reply = m.receive((byte) 2);
+            BytesPayload bytesPayload = (BytesPayload) reply;
+            int id = bytesPayload.readFirstInt();
+
+            Path outputPath = Paths.get(usernameDirectory, "output_" + id);  
+            
+            try (DataOutputStream dataOutputStream = new DataOutputStream(Files.newOutputStream(outputPath))) {
+                dataOutputStream.write(bytesPayload.getData());
+            } catch (IOException e) {
+                System.out.println("Error writing to the file: " + e.getMessage());
+            }
+
+        } else if (payload == -1) {
+            System.out.println("Error sending file.");
+        } else {
+            System.out.println("Unknown error.");
+        }
+
+    } catch (IOException e) {
+        System.out.println("Error reading the file: " + e.getMessage());
+    }
     }
 
 
