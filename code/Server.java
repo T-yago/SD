@@ -12,7 +12,9 @@ import sd23.*;
 
 
 public class Server {
-                
+
+
+    private static CustomBlockingQueue<String> programQueue = new CustomBlockingQueue<>(20);            
     private static Accounts accounts = new Accounts();
     private static int max_MEM;
     private static Lock memoryLock = new ReentrantLock();
@@ -20,6 +22,11 @@ public class Server {
     private static Condition memoryAvailable = memoryLock.newCondition();
 
 
+    static class JobMemoryException extends Exception {
+        public JobMemoryException(String message) {
+            super(message);
+        }
+    }
 
     public static void main(String[] args) {
         if (args.length < 1) {
@@ -55,8 +62,8 @@ public class Server {
                             clientSocket = serverSocket.accept();
                             Connection connection = new Connection(clientSocket);
                             handleClient(connection, currentMemory);
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        } catch (IOException | JobMemoryException e) {
+                            System.out.println("Error handling client");;
                         }
                     }
                 });
@@ -68,7 +75,7 @@ public class Server {
         }
     }
 
-    private static void handleClient(Connection conn, AtomicInteger currentMemory) {
+    private static void handleClient(Connection conn, AtomicInteger currentMemory) throws JobMemoryException{
         try (conn) {
             while (true) {
                 System.out.println("COMEçCoU!");
@@ -123,9 +130,17 @@ public class Server {
                         
                     } else if (type == 2) { // Executar código
                         int mem = 0;
+                        boolean exception = false;
                         try {
                             BytesPayload bytesPayload = (BytesPayload) message.getPayload();
-                            mem = bytesPayload.readMemFirstInt();
+                            mem = bytesPayload.readFirstInt();
+                            
+                            if (mem > max_MEM) {
+                                exception = true;
+                                throw new JobMemoryException("Job requires more memory than the maximum allowed.");
+                            }
+
+                            int id = bytesPayload.readSecondInt();
         
                             System.out.println("\n\n Current MEM" + currentMemory + "\n\n");
         
@@ -135,7 +150,8 @@ public class Server {
                                     while (mem > currentMemory.get()) {
                                         try {
                                             System.out.println("Ran out of memory");
-                                            memoryAvailable.await(); // Handle InterruptedException
+                                            programQueue.enqueue("Job" + id);
+                                            memoryAvailable.await(); // espera até que haja memória disponível
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                         }
@@ -149,27 +165,40 @@ public class Server {
                                 byte[] job = bytesPayload.getData();
                                 currentMemory.addAndGet(-mem);
         
-                                // Release the lock before executing the job
                                 memoryLock.unlock();
         
                                 try {
                                     byte[] output = JobFunction.execute(job);
+
+                                    byte[] outputWithId = new byte[output.length + 4];
+                                    outputWithId[0] = (byte) id;
+                                    outputWithId[1] = (byte) (id >> 8);
+                                    outputWithId[2] = (byte) (id >> 16);
+                                    outputWithId[3] = (byte) (id >> 24);
+
+                                    System.arraycopy(output, 0, outputWithId, 4, output.length);
+
                                     System.err.println("success, returned " + output.length + " bytes");
                                     conn.send(new Message((byte) 127, new BytePayload((byte) 0)));
-                                    conn.send(new Message((byte) 2, new BytesPayload(output)));
+                                    conn.send(new Message((byte) 2, new BytesPayload(outputWithId)));
                                 } catch (JobFunctionException | IOException e) {
                                     System.out.println("job failed");
                                     e.printStackTrace();
                                     conn.send(new Message((byte) 127, new BytePayload((byte) -1)));
                                 }
                             } finally {
+                                try {
+                                    String program = programQueue.dequeue();
+                                    System.out.println("Dequeued program: " + program);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 memoryLock.lock();
                                 currentMemory.addAndGet(mem);
                                 memoryAvailable.signalAll();
                             }
                         } finally {
-                            // Ensure the lock is always released
-                            memoryLock.unlock();
+                            if (!exception) memoryLock.unlock();
                         }
                     } else {
                         System.out.println("Received invalid message type: " + type);
@@ -181,3 +210,4 @@ public class Server {
             }
         }
 }
+
