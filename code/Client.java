@@ -84,8 +84,7 @@ public class Client {
                                 }
                             }).start();
                         } else if (option == 2) {
-                            
-                            
+                            handle_check(m, acc);
 
                         }
                         else if (option == 3) {
@@ -109,6 +108,10 @@ public class Client {
 
 
 
+    private static boolean handle_check (Demultiplexer m, Account acc) throws IOException {
+        
+        return false;
+    }
 
     private static boolean handle_register_login (Demultiplexer m, BufferedReader stdin, Account acc) throws IOException {
         System.out.print("\n////////////REGISTAR NOVA CONTA/////////////\n"
