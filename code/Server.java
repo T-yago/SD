@@ -18,7 +18,7 @@ public class Server {
     private static Accounts accounts = new Accounts();
     private static int max_MEM;
     private static Lock memoryLock = new ReentrantLock();
-    private static AtomicInteger currentMemory;
+    private static SimpleAtomicInteger currentMemory;
     private static Condition memoryAvailable = memoryLock.newCondition();
 
 
@@ -34,7 +34,7 @@ public class Server {
             System.exit(1);
         }
         max_MEM = Integer.parseInt(args[0]);
-        currentMemory = new AtomicInteger(max_MEM);
+        currentMemory = new SimpleAtomicInteger(max_MEM);
         int numThreads = Integer.parseInt(args[1]);
 
 
@@ -75,7 +75,7 @@ public class Server {
         }
     }
 
-    private static void handleClient(Connection conn, AtomicInteger currentMemory) throws JobMemoryException{
+    private static void handleClient(Connection conn, SimpleAtomicInteger currentMemory) throws JobMemoryException{
         try (conn) {
             while (true) {
                 System.out.println("COMEçCoU!");
@@ -106,7 +106,7 @@ public class Server {
                                 accounts.logInUser(account.getUsername(), account.getPassword());
                                 System.out.println("Account login successfull.");
                                 conn.send(new Message((byte)127,new BytePayload((byte)0)));
- 
+
                             } catch (Accounts.AccountAlreadyLogged e) { // caso em que a conta já está logada
                                 conn.send(new Message((byte)127,new BytePayload((byte)-1)));
 
@@ -142,7 +142,7 @@ public class Server {
 
                             int id = bytesPayload.readSecondInt();
         
-                            System.out.println("\n\n Current MEM" + currentMemory + "\n\n");
+                            System.out.println("\n\n Current MEM" + currentMemory.get() + "\n\n");
         
                             memoryLock.lock();
                             try {
@@ -200,6 +200,9 @@ public class Server {
                         } finally {
                             if (!exception) memoryLock.unlock();
                         }
+                    } else if (type == 3) {
+                        
+                        
                     } else {
                         System.out.println("Received invalid message type: " + type);
                     }
