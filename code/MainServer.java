@@ -21,7 +21,7 @@ public class MainServer {
     private static ArrayList<WorkerInfo> workers = new ArrayList<>();
     private static Accounts accounts = new Accounts();
     private static WaitingJobs waitingJobs = new WaitingJobs(50);
-    private static int idCounter = 0;
+    private static byte idCounter = (byte) 16;
     private static Lock idCounter_Lock = new ReentrantLock();
     private static Map<Integer, JobInfo> mapJobs = new HashMap<>();
     private static Lock mapJobs_Lock = new ReentrantLock();
@@ -36,7 +36,6 @@ public class MainServer {
         WorkerInfo (int total_Mem, Connection c) {
             this.c = c;
             this.total_mem = total_Mem;
-            this.lock = new ReentrantLock();
         }
 
         int getMem() {
@@ -95,7 +94,7 @@ public class MainServer {
 
                         if (maxMem < minMemory) {
                             try {
-                                awake_send_Thread_cond.wait();
+                                awake_send_Thread_cond.await();
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
@@ -133,7 +132,9 @@ public class MainServer {
 
                         if (maxMem==0) {
                             try {
-                                awake_send_Thread_cond.wait();
+                                awake_send_Thread_Lock.lock();
+                                awake_send_Thread_cond.await();
+                                awake_send_Thread_Lock.unlock();
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
@@ -144,7 +145,10 @@ public class MainServer {
                     JobInfo job = waitingJobs.getJob(maxMem);
                     if (job==null) {
                         try {
-                            awake_send_Thread_cond.wait();
+                            System.out.println("VOU DORMIRRRRRRRRRRRRRRRRRRRRRRRRRRR.");
+                            awake_send_Thread_Lock.lock();
+                            awake_send_Thread_cond.await();
+                            awake_send_Thread_Lock.unlock();
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -153,7 +157,9 @@ public class MainServer {
                         // Envia o job para o worker que tem mais espaço livre
                         Message m = new Message((byte) job.getId(), job.getPayload());
                         try {
+                            System.out.println("MANDEI PARA O WORKER FILHÃO.");
                             worker.getConnection().send(m);
+                            System.out.println("MANDEI PARA O WORKER FILHÃO.");
                         } catch (IOException e) {
                             // Remove o worker da lista de workers disponíves
                             for (WorkerInfo w: workers) {
@@ -170,7 +176,7 @@ public class MainServer {
 
                 }
             }
-        });
+        }).start();
 
         try {
             final ServerSocket serverSocket = new ServerSocket(22347);
@@ -201,7 +207,7 @@ public class MainServer {
                                 } catch (JobMemoryException e) {
                                     throw new RuntimeException(e);
                                 }
-                            });
+                            }).start();
                         } catch (IOException e) {
                             System.out.println("Error handling client");;
                         }
@@ -269,6 +275,7 @@ public class MainServer {
                         }
 
                     } else if (type == 2) { // Encaminhar o pedido para um worker
+                        System.out.println("ENTROU");
                         BytesPayload bytesPayload = (BytesPayload) message.getPayload();
                         int mem_require = bytesPayload.readFirstInt();
                         int id = bytesPayload.readSecondInt();
@@ -280,21 +287,30 @@ public class MainServer {
 
                         Lock lock_wake_me = new ReentrantLock();
                         Condition cond = lock_wake_me.newCondition();
-                        JobInfo jobInfo = new JobInfo(new_id, conn, cond, mem_require, bytesPayload);
+                        JobInfo jobInfo = new JobInfo(new_id, id, conn, lock_wake_me, cond, mem_require, bytesPayload);
                         mapJobs_Lock.lock();
                         mapJobs.put(new_id, jobInfo);
                         mapJobs_Lock.unlock();
                         waitingJobs.addJob(jobInfo);
+                        awake_send_Thread_Lock.lock();
+                        awake_send_Thread_cond.signal();
+                        awake_send_Thread_Lock.unlock();
+
+                        System.out.println("Estou à espera da resposta");
 
                         // Thread espera pela resposta
                         try {
                             mapJobs_Lock.lock();
                             while (mapJobs.get(new_id).getAnswer_job()==null) {
+                                lock_wake_me.lock();
                                 cond.await();
+                                lock_wake_me.unlock();
                             }
                         } catch (InterruptedException e) {
                             mapJobs_Lock.unlock();
                         }
+
+                        System.out.println("Já tenho a resposta");
 
                         // Envia a resposta
                         byte[] answer = mapJobs.get(new_id).getAnswer_job();
@@ -309,25 +325,42 @@ public class MainServer {
                         conn.send(new Message((byte) 127, new BytePayload((byte) 0)));
                         conn.send(new Message((byte) 2, new BytesPayload(answerWithId)));
                     } else if (type == 3) {
-                        
-                        
+
+                        // Vai buscar a memória total livre e a fila de espera
+                        System.out.println("TOU AQUI.");
+                        int totalFreeSpace = 0;
+                        for (WorkerInfo w: workers) {
+                            totalFreeSpace += w.getMem();
+                        }
+                        ArrayList<Byte> waitList = waitingJobs.getWaitList();
+
+                        // Converte os dois para binário e concatena-os
+                        byte[] answer = new byte[waitList.size() + 4];
+                        answer[0] = (byte) totalFreeSpace;
+                        answer[1] = (byte) (totalFreeSpace >> 8);
+                        answer[2] = (byte) (totalFreeSpace >> 16);
+                        answer[3] = (byte) (totalFreeSpace >> 24);
+
+                        for (int i = 0;i<waitList.size();i++) {
+                            answer[i+4] = waitList.get(i);
+                        }
+
+                        Payload payload = new BytesPayload(answer);
+                        System.out.println("BYTES -> " + answer.toString());
+                        Message reply = new Message((byte) 4, payload);
+                        conn.send(reply);
+
                     } else if (type == 10) { // Dá origem a um worker
                         BytesPayload bytesPayload = (BytesPayload) message.getPayload();
                         int total_Mem = bytesPayload.readFirstInt();
                         WorkerInfo worker = new WorkerInfo(total_Mem, conn);
 
-                        for (WorkerInfo w : workers) {
-                            w.lock();
-                        }
                         workers.add(worker);
-                        for (WorkerInfo w : workers) {
-                            w.unlock();
-                        }
 
                         boolean flag = true;
                         while (flag) {
                             try {
-                                conn.receive();
+                                message = conn.receive();
                             } catch (IOException e) {
                                 for (WorkerInfo w : workers) {
                                     w.lock();
@@ -348,6 +381,10 @@ public class MainServer {
                                 JobInfo j = mapJobs.get(id);
                                 byte[] answer = Arrays.copyOfRange(((BytesPayload) message.getPayload()).getData(), 4, ((BytesPayload) message.getPayload()).getData().length);
                                 j.answerJob(answer);
+                                worker.updateMem(mapJobs.get(id).getSize());
+                                awake_send_Thread_Lock.lock();
+                                awake_send_Thread_cond.signal();
+                                awake_send_Thread_Lock.unlock();
                             }
                         }
                         } else {

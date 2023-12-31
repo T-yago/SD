@@ -29,9 +29,11 @@ public class Worker {
 
         // Recebe pedidos
         while (true) {
+            System.out.println("Tou à espera CHEF.");
+            Message m = c.receive();
+            System.out.println("Recebi o job.");
             new Thread (() -> {
                 try {
-                    Message m = c.receive();
                     byte id = m.getType();
                     BytesPayload bytesPayload = (BytesPayload) m.getPayload();
                     byte[] job = bytesPayload.getData();
@@ -42,13 +44,14 @@ public class Worker {
                     // Envia o resultado
                     Payload payload1 = new BytesPayload(output);
                     Message answer = new Message((byte) id, payload1);
+                    c.send(answer);
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 } catch (JobFunctionException e) {
                     throw new RuntimeException(e);
                 }
-            });
+            }).start();
         }
 
     }

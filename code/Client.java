@@ -109,12 +109,21 @@ public class Client {
     private static boolean handle_check (Demultiplexer m) throws IOException {
         Message message = new Message((byte)3, new BytePayload((byte)0));
         m.send(message);
-        CustomBlockingQueue queue = (CustomBlockingQueue) m.receive((byte)4);
-        if (queue == null) {
-            System.out.println("Error receiving message.");
-            return false;
+        BytesPayload payload = (BytesPayload) m.receive((byte)4);
+        byte[] bytes = payload.getData();
+
+        // Converte para os tipos iniciais
+        int mem_Available_Total = (bytes[0] & 0xFF) |
+                ((bytes[1] & 0xFF) << 8) |
+                ((bytes[2] & 0xFF) << 16) |
+                ((bytes[3] & 0xFF) << 24);
+        System.out.println("Total memory available: " + mem_Available_Total);
+
+        System.out.println("Waiting Queue:");
+        for (int i = 4;i<bytes.length;i++) {
+            System.out.println("Id -> " + bytes[i]);
         }
-        System.out.println(queue.toString());
+
         return false;
     }
 
@@ -184,6 +193,7 @@ public class Client {
     private static void handle_execution (Account acc, String filePath, Demultiplexer m, int memory) throws IOException {
         try {
             byte[] fileContent = Files.readAllBytes(Paths.get(filePath));
+            System.out.println(fileContent);
             int jobID = acc.getJobCounter();
     
             byte[] memoryBytes = new byte[4];
