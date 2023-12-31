@@ -51,6 +51,9 @@ public class Connection implements AutoCloseable {
             } else if (type == 4) {
                 CustomBlockingQueue customBlockingQueue = new CustomBlockingQueue();
                 payload = (CustomBlockingQueue) customBlockingQueue.deserialize(this.inputStream);
+            } else if (type == 10) {
+            BytesPayload bytesPayload = new BytesPayload();
+            payload = (BytesPayload) bytesPayload.deserialize(this.inputStream);
             }
 
            
