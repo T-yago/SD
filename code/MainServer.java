@@ -19,7 +19,6 @@ public class MainServer {
 
 
     private static ArrayList<WorkerInfo> workers = new ArrayList<>();
-    private static CustomBlockingQueue<String> programQueue = new CustomBlockingQueue<>(20);
     private static Accounts accounts = new Accounts();
     private static WaitingJobs waitingJobs = new WaitingJobs(50);
     private static int idCounter = 0;
@@ -341,17 +340,14 @@ public class MainServer {
                             }
 
                             if (flag) {
-                                byte type1 = message.getType();
+                                int id = (int) message.getType();
 
-                                if (type1 == 11) {
-                                    BytesPayload bytesPayload1 = (BytesPayload) message.getPayload();
-                                    int id = bytesPayload1.readFirstInt();
+                                BytesPayload bytesPayload1 = (BytesPayload) message.getPayload();
 
-                                    // Adiciona ao map de respostas a jobs e avisa a thread que estava à espera
-                                    JobInfo j = mapJobs.get(id);
-                                    byte[] answer = Arrays.copyOfRange(((BytesPayload) message.getPayload()).getData(), 4, ((BytesPayload) message.getPayload()).getData().length);
-                                    j.answerJob(answer);
-                                }
+                                // Adiciona ao map de respostas a jobs e avisa a thread que estava à espera
+                                JobInfo j = mapJobs.get(id);
+                                byte[] answer = Arrays.copyOfRange(((BytesPayload) message.getPayload()).getData(), 4, ((BytesPayload) message.getPayload()).getData().length);
+                                j.answerJob(answer);
                             }
                         }
                         } else {
