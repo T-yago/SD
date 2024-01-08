@@ -21,7 +21,6 @@ public class Connection implements AutoCloseable {
         wl.lock();
         try {
             this.outputStream.writeByte(message.getType());
-            System.out.println(message.getType());
             message.getPayload().serialize(this.outputStream);
             this.outputStream.flush();
         } finally {
@@ -36,9 +35,7 @@ public class Connection implements AutoCloseable {
         Payload payload = null;
 
         try {
-            System.out.println("VOU LER.");
             type = this.inputStream.readByte();
-            System.out.println("Tipo -> " + type);
 
             if (type == 0 | type == 1) {
                 Account acc = new Account();

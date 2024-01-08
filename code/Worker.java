@@ -29,9 +29,7 @@ public class Worker {
 
         // Recebe pedidos
         while (true) {
-            System.out.println("Tou à espera CHEF.");
             Message m = c.receive();
-            System.out.println("Recebi o job.");
             new Thread (() -> {
                 try {
                     byte id = m.getType();

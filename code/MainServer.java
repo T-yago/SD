@@ -145,7 +145,6 @@ public class MainServer {
                     JobInfo job = waitingJobs.getJob(maxMem);
                     if (job==null) {
                         try {
-                            System.out.println("VOU DORMIRRRRRRRRRRRRRRRRRRRRRRRRRRR.");
                             awake_send_Thread_Lock.lock();
                             awake_send_Thread_cond.await();
                             awake_send_Thread_Lock.unlock();
@@ -157,9 +156,7 @@ public class MainServer {
                         // Envia o job para o worker que tem mais espaço livre
                         Message m = new Message((byte) job.getId(), job.getPayload());
                         try {
-                            System.out.println("MANDEI PARA O WORKER FILHÃO.");
                             worker.getConnection().send(m);
-                            System.out.println("MANDEI PARA O WORKER FILHÃO.");
                         } catch (IOException e) {
                             // Remove o worker da lista de workers disponíves
                             for (WorkerInfo w: workers) {
@@ -224,11 +221,8 @@ public class MainServer {
     private static void handleConnection(Connection conn) throws JobMemoryException {
         try (conn) {
             while (true) {
-                System.out.println("Começou!");
                 Message message = conn.receive();
                 byte type = message.getType();
-
-                System.out.println("Received message type: " + type);
         
                     if (type == 0) { // Registo
                         Account account = (Account) message.getPayload();
@@ -275,7 +269,6 @@ public class MainServer {
                         }
 
                     } else if (type == 2) { // Encaminhar o pedido para um worker
-                        System.out.println("ENTROU");
                         BytesPayload bytesPayload = (BytesPayload) message.getPayload();
                         int mem_require = bytesPayload.readFirstInt();
                         int id = bytesPayload.readSecondInt();
@@ -296,8 +289,6 @@ public class MainServer {
                         awake_send_Thread_cond.signal();
                         awake_send_Thread_Lock.unlock();
 
-                        System.out.println("Estou à espera da resposta");
-
                         // Thread espera pela resposta
                         try {
                             mapJobs_Lock.lock();
@@ -309,8 +300,6 @@ public class MainServer {
                         } catch (InterruptedException e) {
                             mapJobs_Lock.unlock();
                         }
-
-                        System.out.println("Já tenho a resposta");
 
                         // Envia a resposta
                         byte[] answer = mapJobs.get(new_id).getAnswer_job();
@@ -327,7 +316,6 @@ public class MainServer {
                     } else if (type == 3) {
 
                         // Vai buscar a memória total livre e a fila de espera
-                        System.out.println("TOU AQUI.");
                         int totalFreeSpace = 0;
                         for (WorkerInfo w: workers) {
                             totalFreeSpace += w.getMem();
@@ -346,7 +334,6 @@ public class MainServer {
                         }
 
                         Payload payload = new BytesPayload(answer);
-                        System.out.println("BYTES -> " + answer.toString());
                         Message reply = new Message((byte) 4, payload);
                         conn.send(reply);
 

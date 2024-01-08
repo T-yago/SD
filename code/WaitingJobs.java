@@ -20,7 +20,6 @@ public class WaitingJobs {
     public void addJob(JobInfo job) {
         l.lock();
         jobs.get(size-1).addLast(job);
-        System.out.println(jobs);
         l.unlock();
     }
 
